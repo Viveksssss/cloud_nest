@@ -7,6 +7,7 @@
 #include <noncopyable.h>
 #include <pqxx/pqxx>
 #include <queue>
+#include <spdlog/spdlog.h>
 #include <string>
 #include <sys/cdefs.h>
 #include <thread>
@@ -72,6 +73,7 @@ public:
          * @param timeout_ms
          */
         ConnectionGuard(SqlPool &pool, int timeout_ms = 5000);
+        ConnectionGuard(std::shared_ptr<SqlPool> pool, int timeout_ms = 5000);
         /**
          * @brief Destroy the Connection Guard object
          *
@@ -107,6 +109,30 @@ public:
          * @return std::shared_ptr<pqxx::connection>
          */
         std::shared_ptr<pqxx::connection> get();
+
+        /**
+         * @brief Template-based operation function
+         *
+         * @tparam Args
+         * @param pattern
+         * @param args
+         * @return pqxx::result
+         */
+        template <typename... Args>
+        pqxx::result execute(std::string const &pattern, Args &&...args) {
+            auto guard = SqlPool::ConnectionGuard(_pool);
+            pqxx::work txn(*guard);
+
+            try {
+                pqxx::result res = txn.exec(pattern, std::forward<Args>(args)...);
+                txn.commit();
+                spdlog::debug("[插入] 操作成功，影响行数: {}", res.affected_rows());
+                return res;
+            } catch (std::exception const &e) {
+                spdlog::error("[插入] 失败: {}", e.what());
+                throw;
+            }
+        }
     };
 
 private:

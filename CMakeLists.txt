@@ -18,6 +18,7 @@ find_package(Threads REQUIRED)
 find_package(muduo REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(spdlog REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 # Debug模式下的编译选项
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -Wall -Wextra -Werror -Wconversion -Wno-reorder -Wno-unused-parameter -Wno-shadow")
@@ -61,15 +62,23 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
 
-file(GLOB SOURCES src/*.cc)
+file(GLOB_RECURSE SOURCES "src/*.cc")
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/static
     DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/bin
 )
 
-add_executable(cloud_nest main.cpp ${SOURCES})
+add_executable(cloud_nest main.cpp ${SOURCES}
+    src/db/PgDatabase.cc
+    src/utils/FileUtils.h
+    src/utils/CodeGenerator.h
+    src/handler/Router.cc)
 include_directories(/usr/local/include/)
 target_link_libraries(cloud_nest PRIVATE /usr/lib/libpq.so /usr/local/lib/libpqxx.a )
-target_include_directories(cloud_nest PRIVATE include)
-target_link_libraries(cloud_nest PRIVATE muduo)
-target_link_libraries(cloud_nest PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(cloud_nest PRIVATE 
+    nlohmann_json::nlohmann_json
+    spdlog::spdlog 
+    muduo
+    OpenSSL::SSL
+    OpenSSL::Crypto
+)
 

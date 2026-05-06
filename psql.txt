@@ -1,0 +1,41 @@
+CREATE DATABASE file_manager WITH ENCODING 'UTF8';
+
+\c file_manager;
+
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    email VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE files (
+    id SERIAL PRIMARY KEY,
+    filename VARCHAR(255) NOT NULL,
+    original_filename VARCHAR(255) NOT NULL,
+    file_size BIGINT NOT NULL CHECK (file_size >= 0),
+    file_type VARCHAR(50),
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE sessions (
+    id SERIAL PRIMARY KEY,
+    session_id VARCHAR(64) UNIQUE NOT NULL,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    username VARCHAR(50),
+    expire_time TIMESTAMP NOT NULL
+);
+
+CREATE TABLE file_shares (
+    id SERIAL PRIMARY KEY,
+    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    shared_with_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    share_type VARCHAR(20) DEFAULT 'private' CHECK (share_type IN ('private','public','protected','user')),
+    share_code VARCHAR(64) UNIQUE,
+    extract_code VARCHAR(16),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expire_time TIMESTAMP
+);
