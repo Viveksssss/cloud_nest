@@ -9,4 +9,5 @@ Application::Application(InetAddress address, std::string const &name)
 void Application::start(unsigned int threadNum) {
     server.setThreadNum(static_cast<int>(threadNum));
     server.start();
+    loop.loop();
 }

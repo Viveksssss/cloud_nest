@@ -1,11 +1,11 @@
 // db/Database.h
 #pragma once
-#include <map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 // 表示一行数据的便捷类型
-using Row = std::map<std::string, std::string>;
+using Row = std::unordered_map<std::string, std::string>;
 using ResultSet = std::vector<Row>;
 
 class Database {
@@ -17,17 +17,19 @@ public:
     virtual int execute(std::string const &sql) = 0;
 
     /// 执行参数化 INSERT/UPDATE/DELETE
-    virtual int executeParams(std::string const &sql, std::vector<std::string> const &params) = 0;
+    virtual int executeParams(std::string const &sql, std::vector<std::string> const &params = {})
+        = 0;
 
     /// 执行 SELECT，返回结果集
-    virtual ResultSet query(std::string const &sql) = 0;
+    virtual ResultSet query(std::string const &sql, std::vector<std::string> const &params = {})
+        = 0;
 
     /// 执行参数化 SELECT
     virtual ResultSet queryParams(std::string const &sql, std::vector<std::string> const &params)
         = 0;
 
     /// 查询单行（不存在返回空 Row）
-    virtual Row queryOne(std::string const &sql) = 0;
+    virtual Row queryOne(std::string const &sql, std::vector<std::string> const &params) = 0;
 
     /// 查询单值（如 COUNT、lastval()）
     virtual std::string queryValue(std::string const &sql) = 0;

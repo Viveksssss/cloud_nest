@@ -16,7 +16,11 @@ int PgDatabase::executeParams(std::string const &sql, std::vector<std::string> c
     try {
         auto guard = SqlPool::ConnectionGuard(pool_);
         pqxx::work txn(*guard);
-        pqxx::result res = txn.exec(sql, pqxx::params(params));
+        pqxx::params p;
+        for (auto &param: params) {
+            p.append(param);
+        }
+        pqxx::result res = txn.exec(sql, p);
         txn.commit();
         return res.affected_rows();
     } catch (std::exception const &e) {
@@ -27,12 +31,16 @@ int PgDatabase::executeParams(std::string const &sql, std::vector<std::string> c
 
 // ========== 查询 ==========
 
-ResultSet PgDatabase::query(std::string const &sql) {
+ResultSet PgDatabase::query(std::string const &sql, std::vector<std::string> const &params) {
     ResultSet result;
     try {
         auto guard = SqlPool::ConnectionGuard(pool_);
         pqxx::work txn(*guard);
-        pqxx::result res = txn.exec(sql);
+        pqxx::params p;
+        for (auto &param: params) {
+            p.append(param);
+        }
+        pqxx::result res = txn.exec(sql, p);
         txn.commit();
 
         for (auto const &row: res) {
@@ -53,7 +61,11 @@ ResultSet PgDatabase::queryParams(std::string const &sql, std::vector<std::strin
     try {
         auto guard = SqlPool::ConnectionGuard(pool_);
         pqxx::work txn(*guard);
-        pqxx::result res = txn.exec(sql, pqxx::params(params));
+        pqxx::params p;
+        for (auto &param: params) {
+            p.append(param);
+        }
+        pqxx::result res = txn.exec(sql, p);
         txn.commit();
 
         for (auto const &row: res) {
@@ -69,13 +81,13 @@ ResultSet PgDatabase::queryParams(std::string const &sql, std::vector<std::strin
     return result;
 }
 
-Row PgDatabase::queryOne(std::string const &sql) {
-    auto result = query(sql);
+Row PgDatabase::queryOne(std::string const &sql, std::vector<std::string> const &params) {
+    auto result = query(sql, params);
     return result.empty() ? Row{} : result[0];
 }
 
 std::string PgDatabase::queryValue(std::string const &sql) {
-    auto result = query(sql);
+    auto result = query(sql, {});
     if (result.empty() || result[0].empty()) {
         return "";
     }

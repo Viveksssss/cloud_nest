@@ -71,9 +71,16 @@ add_executable(cloud_nest main.cpp ${SOURCES}
     src/db/PgDatabase.cc
     src/utils/FileUtils.h
     src/utils/CodeGenerator.h
-    src/handler/Router.cc)
+    src/handler/Router.cc
+    src/handler/SessionManager.cc
+    src/handler/AuthHandler.h
+    src/handler/AuthHandler.cc
+    src/handler/FileDownContext.cc
+    src/handler/FileUploadContext.cc
+    src/handler/ShareHandler.cc)
 include_directories(/usr/local/include/)
 target_link_libraries(cloud_nest PRIVATE /usr/lib/libpq.so /usr/local/lib/libpqxx.a )
+target_include_directories(cloud_nest PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(cloud_nest PRIVATE 
     nlohmann_json::nlohmann_json
     spdlog::spdlog 

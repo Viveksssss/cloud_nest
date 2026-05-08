@@ -12,7 +12,8 @@ SqlPool::SqlPool(std::string const &host, std::string const dbname, std::string 
     , _active_connections(0)
     , _max_size(max_size)
     , _min_size(min_size) {
-    _conn_str = "host=" + host + " dbname=" + dbname + " user=" + user + " password=" + password;
+    _conn_str = "host=" + host + " dbname=" + dbname + " user=" + user + " password=" + password
+                + " client_encoding=UTF8";
 
     spdlog::info(
         "[初始化] 正在创建连接池...\n[配置] 最大连接数: {} ,最小连接数:{}", max_size, min_size);
@@ -128,6 +129,7 @@ void SqlPool::returnConnection(std::shared_ptr<pqxx::connection> conn) {
 std::shared_ptr<pqxx::connection> SqlPool::createConnection() {
     try {
         auto conn = std::make_shared<pqxx::connection>(_conn_str);
+        conn->set_client_encoding("UTF8");
         spdlog::info("[创建连接] 新连接已创建，当前活跃连接数: {}", _active_connections + 1);
         return conn;
     } catch (std::exception const &e) {
@@ -157,6 +159,7 @@ SqlPool::ConnectionGuard::ConnectionGuard(SqlPool &pool, int timeout_ms)
     , _released(false)
     , _conn(nullptr) {
     _conn = _pool.getConnection();
+    _conn->set_client_encoding("UTF8");
 }
 
 SqlPool::ConnectionGuard::ConnectionGuard(std::shared_ptr<SqlPool> pool, int timeout_ms)
@@ -164,6 +167,7 @@ SqlPool::ConnectionGuard::ConnectionGuard(std::shared_ptr<SqlPool> pool, int tim
     , _released(false)
     , _conn(nullptr) {
     _conn = _pool.getConnection();
+    _conn->set_client_encoding("UTF8");
 }
 
 SqlPool::ConnectionGuard::~ConnectionGuard() {

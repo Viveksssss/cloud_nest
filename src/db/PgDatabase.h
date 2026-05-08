@@ -15,10 +15,10 @@ public:
 
     // Database 接口实现
     int execute(std::string const &sql) override;
-    int executeParams(std::string const &sql, std::vector<std::string> const &params) override;
-    ResultSet query(std::string const &sql) override;
+    int executeParams(std::string const &sql, std::vector<std::string> const &params = {}) override;
+    ResultSet query(std::string const &sql, std::vector<std::string> const &params = {}) override;
     ResultSet queryParams(std::string const &sql, std::vector<std::string> const &params) override;
-    Row queryOne(std::string const &sql) override;
+    Row queryOne(std::string const &sql, std::vector<std::string> const &params) override;
     std::string queryValue(std::string const &sql) override;
     std::string escape(std::string const &str) override;
     int lastInsertId() override;

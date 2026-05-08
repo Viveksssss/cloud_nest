@@ -1,5 +1,6 @@
 #include "src/Application.h"
 #include <InetAddress.h>
+#include <memory>
 #include <spdlog/logger.h>
 #include <spdlog/spdlog-inl.h>
 

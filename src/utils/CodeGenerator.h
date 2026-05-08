@@ -1,10 +1,16 @@
 // utils/CodeGenerator.h
 #pragma once
+#include <Callbacks.h>
+#include <HttpResponse.h>
+#include <nlohmann/json.hpp>
 #include <random>
 #include <string>
+#include <TcpConnection.h>
 #include <thread>
 
 namespace utils {
+
+using json = nlohmann::json;
 
 namespace {
 
@@ -76,6 +82,24 @@ static inline std::string generateShareCode() {
 static inline std::string generateExtractCode() {
     static std::string const charset = "34679ACDEFGHJKLMNPQRTUVWXY";
     return generateRandomString(6, charset);
+}
+
+static inline void sendJson(
+    HttpResponse *resp, std::string const &body, int code, TcpConnectionPtr const &conn) {
+    resp->setStatusCode(static_cast<HttpResponse::HttpStatusCode>(code));
+    resp->setStatusMessage(code == 200 ? "OK" : "Error");
+    resp->setContentType("application/json; charset=utf-8");
+    resp->addHeader("Connection", "close");
+    resp->setBody(body);
+    if (conn) {
+        conn->setWriteCompleteCallback([](TcpConnectionPtr const &c) { c->shutdown(); });
+    }
+}
+
+static inline void sendError(
+    HttpResponse *resp, std::string const &msg, int code, TcpConnectionPtr const &conn) {
+    json body = {{"code", code}, {"message", msg}};
+    sendJson(resp, body.dump(), code, conn);
 }
 
 } // namespace utils

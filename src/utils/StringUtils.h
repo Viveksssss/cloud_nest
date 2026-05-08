@@ -235,11 +235,15 @@ static inline std::string trim(std::string const &str) {
 }
 
 static inline std::string toLower(std::string const &str) {
-    return str | std::views::transform(::tolower) | std::ranges::to<std::string>();
+    // return str | std::views::transform(::tolower) | std::ranges::to<std::string>();
+    auto view = str | std::views::transform([](unsigned char c) { return std::tolower(c); });
+    return {view.begin(), view.end()};
 }
 
 static inline std::string toUpper(std::string const &str) {
-    return str | std::views::transform(::toupper) | std::ranges::to<std::string>();
+    // return str | std::views::transform(::toupper) | std::ranges::to<std::string>();
+    auto view = str | std::views::transform([](unsigned char c) { return std::toupper(c); });
+    return {view.begin(), view.end()};
 }
 
 static inline bool startsWith(std::string const &str, std::string const &prefix) {
