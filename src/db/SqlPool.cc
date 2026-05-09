@@ -74,7 +74,7 @@ std::shared_ptr<pqxx::connection> SqlPool::getConnection(int timeout_ms) {
 
         try {
             if (conn->is_open()) {
-                spdlog::info("[获取] 从连接池获取连接，剩余空闲:{} , 活跃: {}",
+                spdlog::debug("[获取] 从连接池获取连接，剩余空闲:{} , 活跃: {}",
                     _pool.size(),
                     _active_connections);
                 return conn;
@@ -112,7 +112,7 @@ void SqlPool::returnConnection(std::shared_ptr<pqxx::connection> conn) {
         if (conn->is_open()) {
             _pool.push(conn);
             _active_connections--;
-            spdlog::info(
+            spdlog::debug(
                 "[归还] 连接已归还，空闲: {} ,活跃: {}", _pool.size(), _active_connections);
         } else {
             _active_connections--;

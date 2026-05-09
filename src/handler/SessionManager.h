@@ -7,7 +7,7 @@ class Database;
 
 namespace handler {
 
-class SessionManager {
+class SessionManager{
 public:
     /**
      * @param db 数据库接口（由外部注入）

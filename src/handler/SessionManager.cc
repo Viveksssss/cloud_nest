@@ -18,6 +18,10 @@ std::string SessionManager::createSession(int userId, std::string const &usernam
         return "";
     }
 
+    // 1. 删除该用户的所有旧会话（避免堆积）
+    _db->executeParams("DELETE FROM sessions WHERE user_id = $1", {std::to_string(userId)});
+
+    // 2. 生成新会话并插入
     std::string sessionId = utils::generateSessionId();
     std::string sql = "INSERT INTO sessions (session_id,user_id,username,expire_time) VALUES "
                       "($1,$2,$3,NOW() + INTERVAL '"

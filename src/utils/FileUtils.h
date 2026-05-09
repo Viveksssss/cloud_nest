@@ -7,6 +7,7 @@
 #include <random>
 #include <string>
 #include <system_error>
+#include <unistd.h>
 #include <unordered_map>
 
 namespace utils {
@@ -212,5 +213,20 @@ static inline std::string joinPath(std::string const &base, std::string const &r
     } else {
         return relative.front() == '/' ? base + relative : base + "/" + relative;
     }
+}
+
+/**
+ * @brief Get the Execute Root object
+ *
+ * @return std::string
+ */
+static inline std::string getExecuteRoot() {
+    char buf[PATH_MAX];
+    ssize_t len = readlink("/proc/self/exe", buf, sizeof(buf) - 1);
+    if (len != -1) {
+        buf[len] = '\0';
+        return std::filesystem::path(buf).parent_path().string();
+    }
+    return ""; // 出错
 }
 } // namespace utils

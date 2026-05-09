@@ -98,7 +98,10 @@ static inline void sendJson(
 
 static inline void sendError(
     HttpResponse *resp, std::string const &msg, int code, TcpConnectionPtr const &conn) {
-    json body = {{"code", code}, {"message", msg}};
+    json body = {
+        {"code", code},
+        {"message", msg},
+    };
     sendJson(resp, body.dump(), code, conn);
 }
 

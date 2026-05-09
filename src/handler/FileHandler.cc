@@ -39,8 +39,7 @@ FileHandler::FileHandler(std::shared_ptr<Database> db, std::shared_ptr<SessionMa
     }
 }
 
-bool FileHandler::handlerUpload(
-    TcpConnectionPtr const &conn, HttpRequest &req, HttpResponse *resp) {
+bool FileHandler::handleUpload(TcpConnectionPtr const &conn, HttpRequest &req, HttpResponse *resp) {
     // 1. 验证登录
     std::string sessionId = req.getHeader("X-Session-ID");
     int userId = 0;
@@ -127,19 +126,19 @@ bool FileHandler::handlerUpload(
         std::string serverFilename = fs::path(upCtx->getFilename()).filename().string();
         std::string fileType = utils::getFileType(upCtx->getOriginalFilename());
 
-        int aff = _db->executeParams(
+        auto res = _db->queryParams(
             "INSERT INTO files (filename,original_filename,file_size,file_type,user_id) VALUES "
-            "($1,$2,$3,$4,$5)",
+            "($1,$2,$3,$4,$5) RETURNING id",
             {serverFilename,
                 upCtx->getOriginalFilename(),
                 std::to_string(size),
                 fileType,
                 std::to_string(userId)});
-        if (aff == -1) {
+        if (res.empty()) {
             spdlog::error("文件信息存储失败!");
             std::runtime_error("文件信息存储数据库失败");
         }
-        int fileId = _db->lastInsertId();
+        int fileId = std::stoi(res[0]["id"]);
         json respJson = {{"code", 0},
             {"message", "上传成功"},
             {"fileId", fileId},
@@ -198,12 +197,13 @@ bool FileHandler::handleDownload(
         resp->addHeader("Content-Length", std::to_string(fileSize));
         resp->addHeader("Accept-Ranges", "bytes");
         resp->addHeader("Connection", "close");
-        conn->setWriteCompleteCallback([](TcpConnectionPtr const &c) { c->shutdown(); });
+        conn->setWriteCompleteCallback(
+            [self = shared_from_this()](TcpConnectionPtr const &c) { c->shutdown(); });
         return true;
     }
 
     long long startPos = 0, endPos = static_cast<long long>(fileSize - 1);
-    [[maybe_unused]] bool isRange = true;
+    [[maybe_unused]] bool isRange = false;
     std::string rangeHdr = req.getHeader("Range");
     if (!rangeHdr.empty()) {
         std::regex rgx("bytes=(\\d+)-(\\d*)");

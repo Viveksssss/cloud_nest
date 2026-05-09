@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include "handler/HttpUploadHandler.h"
 #include <EventLoop.h>
 #include <HttpServer.h>
 #include <InetAddress.h>
@@ -22,4 +23,5 @@ public:
 private:
     EventLoop loop;
     HttpServer server;
+    std::shared_ptr<handler::HttpUploadHandler> _handler;
 };

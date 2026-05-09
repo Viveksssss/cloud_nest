@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <title>文件分享 - 提取文件</title>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4A6CF7;
+            --primary-hover: #3B54E0;
+            --primary-light: #EEF1FE;
+            --primary-shadow: rgba(74, 108, 247, 0.25);
+            --success: #10B981;
+            --success-hover: #059669;
+            --success-light: #ECFDF5;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --danger-hover: #DC2626;
+            --bg: #F0F4F8;
+            --bg-card: #FFFFFF;
+            --bg-input: #F8FAFC;
+            --border: #E2E8F0;
+            --border-light: #EDF2F7;
+            --text-primary: #1E293B;
+            --text-secondary: #64748B;
+            --text-muted: #94A3B8;
+            --text-white: #FFFFFF;
+            --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.05);
+            --shadow-lg: 0 10px 30px rgba(0,0,0,0.10), 0 4px 8px rgba(0,0,0,0.05);
+            --shadow-xl: 0 20px 50px rgba(0,0,0,0.13), 0 8px 16px rgba(0,0,0,0.06);
+            --radius-xs: 6px;
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 20px;
+            --radius-full: 9999px;
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+            --spacing-xl: 32px;
+            --spacing-2xl: 48px;
+            --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-slow: 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            background-image:
+                radial-gradient(ellipse at 30% 30%, rgba(74, 108, 247, 0.04) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 70%, rgba(245, 158, 11, 0.04) 0%, transparent 60%);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: var(--spacing-md);
+        }
+
+        .share-container {
+            width: 100%;
+            max-width: 560px;
+            background: var(--bg-card);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-light);
+            padding: var(--spacing-2xl) var(--spacing-xl);
+            text-align: center;
+            animation: fadeSlideIn 0.5s ease-out;
+        }
+
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .share-type-message {
+            margin: var(--spacing-md) 0;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            background: #F8FAFC;
+            padding: 10px 16px;
+            border-radius: var(--radius-full);
+            display: inline-block;
+        }
+
+        .code-input {
+            margin: var(--spacing-md) 0;
+        }
+        .code-input input {
+            width: 80%;
+            max-width: 280px;
+            padding: 12px 16px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 1.1rem;
+            text-align: center;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            background: var(--bg-input);
+            transition: all var(--transition-fast);
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+        }
+        .code-input input:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 4px rgba(74, 108, 247, 0.08);
+            background: #fff;
+        }
+
+        .submit-button {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 12px 32px;
+            border-radius: var(--radius-full);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            box-shadow: 0 2px 10px var(--primary-shadow);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .submit-button:hover {
+            background: var(--primary-hover);
+            box-shadow: 0 6px 20px rgba(74, 108, 247, 0.35);
+            transform: translateY(-1px);
+        }
+        .submit-button:active {
+            transform: scale(0.96);
+        }
+        .submit-button:disabled {
+            background: #CBD5E1;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .error-message {
+            color: var(--danger);
+            margin-top: 12px;
+            display: none;
+            padding: 10px 16px;
+            background: var(--danger-light);
+            border-radius: var(--radius-sm);
+            font-weight: 500;
+            font-size: 0.9rem;
+            border: 1px solid #FECACA;
+        }
+
+        .loading {
+            display: none;
+            margin: 16px 0;
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border-light);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .file-info {
+            margin-top: var(--spacing-lg);
+            padding: var(--spacing-lg);
+            background: #F8FAFC;
+            border-radius: var(--radius-md);
+            text-align: left;
+            display: none;
+            border: 1px solid var(--border-light);
+        }
+        .file-info h3 {
+            margin: 0 0 12px;
+            color: var(--text-primary);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .file-info p {
+            margin: 8px 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .download-button {
+            background: var(--success);
+            color: #fff;
+            border: none;
+            padding: 12px 28px;
+            border-radius: var(--radius-full);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: var(--spacing-md);
+            transition: all var(--transition-fast);
+            box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .download-button:hover {
+            background: var(--success-hover);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .preview-container {
+            margin: 16px 0;
+            display: none;
+        }
+        .video-preview video,
+        .image-preview img {
+            width: 100%;
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-sm);
+        }
+        .image-preview img {
+            max-height: 400px;
+            object-fit: contain;
+            background: #000;
+        }
+
+        /* 视频播放器弹窗 */
+        .overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            z-index: 998;
+            backdrop-filter: blur(2px);
+        }
+        .video-player {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #0F172A;
+            padding: 8px;
+            border-radius: var(--radius-lg);
+            z-index: 1000;
+            max-width: 95vw;
+            max-height: 95vh;
+            box-shadow: var(--shadow-xl);
+        }
+        .video-player video {
+            max-width: 100%;
+            max-height: 85vh;
+            display: block;
+            margin: 0 auto;
+            border-radius: var(--radius-sm);
+        }
+        .video-player .close-button {
+            position: absolute;
+            top: -14px;
+            right: -14px;
+            background: var(--danger);
+            border: 3px solid #fff;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1002;
+            transition: all var(--transition-fast);
+            box-shadow: var(--shadow-md);
+        }
+        .video-player .close-button:hover {
+            background: #DC2626;
+            transform: scale(1.08);
+        }
+
+        /* 响应式 */
+        @media (max-width: 480px) {
+            .share-container {
+                padding: var(--spacing-lg) var(--spacing-md);
+                border-radius: var(--radius-lg);
+                max-width: 100%;
+            }
+            h1 { font-size: 1.4rem; }
+            .code-input input { width: 90%; font-size: 1rem; }
+            .submit-button { width: 100%; justify-content: center; }
+            .download-button { width: 100%; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="share-container">
+        <h1><i class="fas fa-share-alt" style="color:var(--warning);"></i> 文件分享</h1>
+        <div id="loading" class="loading"></div>
+        <div id="error-message" class="error-message"></div>
+
+        <!-- 公开分享区域 -->
+        <div id="public-share" style="display: none;">
+            <div class="share-type-message"><i class="fas fa-globe" style="margin-right:6px;color:#3B82F6;"></i> 这是一个公开分享的文件</div>
+            <div class="file-info" id="file-info">
+                <h3><i class="fas fa-info-circle" style="color:var(--primary);"></i> 文件信息</h3>
+                <p><i class="fas fa-file" style="width:18px;color:var(--text-muted);"></i> 文件名：<span id="file-name"></span></p>
+                <p><i class="fas fa-hdd" style="width:18px;color:var(--text-muted);"></i> 文件大小：<span id="file-size"></span></p>
+                <p><i class="fas fa-calendar-alt" style="width:18px;color:var(--text-muted);"></i> 分享时间：<span id="share-time"></span></p>
+                <p><i class="fas fa-hourglass-half" style="width:18px;color:var(--text-muted);"></i> 过期时间：<span id="expire-time"></span></p>
+                <div class="preview-container" id="preview-container">
+                    <div id="video-preview" class="video-preview" style="display:none;">
+                        <video controls preload="metadata" crossorigin="anonymous">您的浏览器不支持视频播放。</video>
+                    </div>
+                    <div id="image-preview" class="image-preview" style="display:none;">
+                        <img src="" alt="预览图片">
+                    </div>
+                </div>
+                <button class="download-button" onclick="downloadFile()"><i class="fas fa-download"></i> 下载文件</button>
+            </div>
+        </div>
+
+        <!-- 受保护分享区域 -->
+        <div id="protected-share" style="display: none;">
+            <div class="share-type-message"><i class="fas fa-lock" style="margin-right:6px;color:#F59E0B;"></i> 这是一个受保护的文件，请输入提取码</div>
+            <div class="code-input">
+                <input type="text" id="share-code" placeholder="6位提取码" maxlength="6" autocomplete="off">
+            </div>
+            <button class="submit-button" onclick="verifyShareCode()" id="submit-button"><i class="fas fa-unlock"></i> 提取文件</button>
+            <div class="file-info" id="protected-file-info" style="display: none;">
+                <h3><i class="fas fa-info-circle" style="color:var(--primary);"></i> 文件信息</h3>
+                <p><i class="fas fa-file" style="width:18px;color:var(--text-muted);"></i> 文件名：<span id="protected-file-name"></span></p>
+                <p><i class="fas fa-hdd" style="width:18px;color:var(--text-muted);"></i> 文件大小：<span id="protected-file-size"></span></p>
+                <p><i class="fas fa-calendar-alt" style="width:18px;color:var(--text-muted);"></i> 分享时间：<span id="protected-share-time"></span></p>
+                <p><i class="fas fa-hourglass-half" style="width:18px;color:var(--text-muted);"></i> 过期时间：<span id="protected-expire-time"></span></p>
+                <div class="preview-container" id="protected-preview-container">
+                    <div id="protected-video-preview" class="video-preview" style="display:none;">
+                        <video controls preload="metadata" crossorigin="anonymous">您的浏览器不支持视频播放。</video>
+                    </div>
+                    <div id="protected-image-preview" class="image-preview" style="display:none;">
+                        <img src="" alt="预览图片">
+                    </div>
+                </div>
+                <button class="download-button" onclick="downloadFile()"><i class="fas fa-download"></i> 下载文件</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 视频弹窗 -->
+    <div class="overlay" id="overlay"></div>
+    <div class="video-player" id="video-player">
+        <button class="close-button" id="video-close-button">&times;</button>
+        <video id="video-element" controls>您的浏览器不支持视频播放。</video>
+    </div>
+
+    <script>
+        let currentFileId = null;
+        let currentFileName = null;
+        let shareType = null;
+        let shareCode = null;
+        let isProtected = false;
+
+        const sessionId = localStorage.getItem('sessionId');
+
+        function getAuthHeaders() {
+            return sessionId ? { 'X-Session-ID': sessionId } : {};
+        }
+
+        function initVideoElement(videoElement) {
+            if (!videoElement) return;
+            videoElement.removeEventListener('seeking', videoElement.seekingHandler);
+            videoElement.removeEventListener('seeked', videoElement.seekedHandler);
+        }
+
+        window.onload = function() {
+            shareCode = window.location.pathname.split('/').pop();
+            const urlParams = new URLSearchParams(window.location.search);
+            const extractCode = urlParams.get('extract_code');
+            showLoading();
+            fetchShareInfo().then(() => {
+                if (extractCode) {
+                    document.getElementById('share-code').value = extractCode;
+                    verifyShareCode();
+                }
+            });
+        };
+
+        function fetchShareInfo() {
+            return fetch(`/share/info/${shareCode}`,{headers: getAuthHeaders()})
+                .then(response => {
+                    if (response.status === 401) {
+                        // 未登录 → 跳转登录页，登录后自动回到当前分享页
+                        window.location.href = '/?redirect=' + encodeURIComponent(window.location.pathname);
+                        return;
+                    }
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.message || '请求失败');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    hideLoading();
+                    if (data && data.code === 0) {
+                        shareType = data.shareType;
+                        isProtected = shareType === 'protected';
+                        if (isProtected) {
+                            document.getElementById('public-share').style.display = 'none';
+                            document.getElementById('protected-share').style.display = 'block';
+                        } else {
+                            document.getElementById('public-share').style.display = 'block';
+                            document.getElementById('protected-share').style.display = 'none';
+                            showFileInfo(data.file);
+                        }
+                    } else if (data) {
+                        showError(data.message || '分享链接无效或已过期');
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    showError(error.message + '。若您已拥有账户，请 <a href="/">登录</a> 后再试。');
+                });
+        }
+
+        function verifyShareCode() {
+            const extractCode = document.getElementById('share-code').value.trim();
+            if (!extractCode) {
+                showError('请输入提取码');
+                return;
+            }
+            showLoading();
+            fetch(`/share/info/${shareCode}?extract_code=${extractCode}`,{headers: getAuthHeaders()})
+                .then(response => response.json())
+                .then(data => {
+                    hideLoading();
+                    if (data.code === 0) {
+                        hideError();
+                        shareType = data.shareType;
+                        isProtected = true;
+                        showFileInfo(data.file);
+                        document.getElementById('protected-file-info').style.display = 'block';
+                    } else {
+                        showError(data.message || '提取码错误');
+                    }
+                })
+                .catch(error => {
+                    hideLoading();
+                    showError('验证提取码失败，请稍后重试');
+                });
+        }
+
+        function showFileInfo(file) {
+            const prefix = isProtected ? 'protected-' : '';
+            const fileInfo = document.getElementById(`${prefix}file-info`);
+            const previewContainer = document.getElementById(`${prefix}preview-container`);
+            const videoPreview = document.getElementById(`${prefix}video-preview`);
+            const imagePreview = document.getElementById(`${prefix}image-preview`);
+
+            document.getElementById(`${prefix}file-name`).textContent = file.originalName;
+            document.getElementById(`${prefix}file-size`).textContent = formatSize(file.size);
+            document.getElementById(`${prefix}share-time`).textContent = formatDate(file.shareTime);
+            document.getElementById(`${prefix}expire-time`).textContent = file.expireTime ?
+                formatDate(file.expireTime) : '永不过期';
+
+            currentFileId = file.id;
+            currentFileName = file.name;
+            fileInfo.style.display = 'block';
+
+            const fileExtension = file.originalName.split('.').pop().toLowerCase();
+            const isVideo = fileExtension === 'mp4';
+            const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileExtension);
+
+            if (isVideo || isImage) {
+                previewContainer.style.display = 'block';
+                if (isVideo) {
+                    const videoEl = videoPreview.querySelector('video');
+                    if (videoEl) {
+                        imagePreview.style.display = 'none';
+                        videoPreview.style.display = 'block';
+                        videoEl.preload = 'metadata';
+                        videoEl.crossOrigin = 'anonymous';
+                        let videoUrl = `/share/download/${currentFileName}?code=${shareCode}`;
+                        if (isProtected) {
+                            const ec = document.getElementById('share-code').value.trim();
+                            videoUrl += `&extract_code=${ec}`;
+                        }
+                        videoEl.src = videoUrl;
+                    }
+                } else if (isImage) {
+                    const imgEl = imagePreview.querySelector('img');
+                    if (imgEl) {
+                        videoPreview.style.display = 'none';
+                        imagePreview.style.display = 'block';
+                        let imgUrl = `/share/download/${currentFileName}?code=${shareCode}`;
+                        if (isProtected) {
+                            const ec = document.getElementById('share-code').value.trim();
+                            imgUrl += `&extract_code=${ec}`;
+                        }
+                        imgEl.src = imgUrl;
+                    }
+                }
+            } else {
+                previewContainer.style.display = 'none';
+            }
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            const btn = document.getElementById('submit-button');
+            if (btn) btn.disabled = true;
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+            const btn = document.getElementById('submit-button');
+            if (btn) btn.disabled = false;
+        }
+
+        function formatSize(bytes) {
+            const units = ['B', 'KB', 'MB', 'GB'];
+            let size = bytes;
+            let unitIndex = 0;
+            while (size >= 1024 && unitIndex < units.length - 1) {
+                size /= 1024;
+                unitIndex++;
+            }
+            return size.toFixed(2) + ' ' + units[unitIndex];
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '未知';
+            const date = new Date(dateStr.replace(' ', 'T') + 'Z');
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                hour12: false
+            });
+        }
+
+        async function downloadFile() {
+            try {
+                if (!currentFileName) { showError('文件信息不完整'); return; }
+                let downloadUrl = `/share/download/${currentFileName}`;
+                if (shareType === 'protected') {
+                    const extractCode = document.getElementById('share-code').value.trim();
+                    if (!extractCode) { showError('请先输入提取码'); return; }
+                    downloadUrl += `?code=${shareCode}&extract_code=${extractCode}`;
+                } else {
+                    downloadUrl += `?code=${shareCode}`;
+                }
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = currentFileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (error) {
+                showError('下载失败，请重试');
+            }
+        }
+
+        window.addEventListener('beforeunload', function() {
+            const videoEl = document.getElementById('video-element');
+            if (videoEl) { videoEl.pause(); videoEl.src = ''; }
+        });
+
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                const videoEl = document.getElementById('video-element');
+                if (videoEl) { videoEl.pause(); videoEl.src = ''; }
+            }
+        });
+    </script>
+</body>
+</html>

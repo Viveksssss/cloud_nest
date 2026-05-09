@@ -12,7 +12,7 @@ class Database;
 namespace handler {
 class SessionManager;
 
-class ShareHandler {
+class ShareHandler : public std::enable_shared_from_this<ShareHandler> {
 public:
     ShareHandler(std::shared_ptr<Database> db, std::shared_ptr<SessionManager> sessions,
         std::string const &uploadDir);

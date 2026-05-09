@@ -39,14 +39,15 @@ bool AuthHandler::handleRegister(
         }
 
         std::string hashedPassword = hashPassword(password);
-        std::string sql = "INSERT INTO users (username,password,email) VALUES ($1,$2,$3)";
-        int affected = _db->executeParams(sql, {username, hashedPassword, email});
-        if (affected < 0) {
+        std::string sql
+            = "INSERT INTO users (username,password,email) VALUES ($1,$2,$3) RETURNING id";
+        auto res = _db->queryParams(sql, {username, hashedPassword, email});
+        if (res.empty()) {
             utils::sendError(resp, "注册失败,请稍后重试", 500, conn);
             return true;
         }
 
-        int userId = _db->lastInsertId();
+        int userId = std::stoi(res[0]["id"]);
         json response = {{"code", 0}, {"message", "注册成功"}, {"userId", userId}};
         utils::sendJson(resp, response.dump(), 200, conn);
         return true;
@@ -92,12 +93,14 @@ bool AuthHandler::handleLogin(TcpConnectionPtr const &conn, HttpRequest &req, Ht
             return true;
         }
 
-        json response = {{"code", 0},
+        json response = {
+            {"code", 0},
             {"message", "登录成功"},
             {"sessionId", sessionId},
             {"userId", userId},
-            {"username", username}};
-
+            {"username", username},
+        };
+        utils::sendJson(resp, response.dump(), 200, conn);
         return true;
     } catch (json::parse_error const &e) {
         utils::sendError(resp, "请求格式错误", 400, conn);
