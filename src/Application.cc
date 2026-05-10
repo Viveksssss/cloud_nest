@@ -20,8 +20,6 @@ Application::Application(InetAddress address, std::string const &name)
         [this](TcpConnectionPtr const &conn, HttpRequest &req, HttpResponse *resp) {
             return _handler->onRequest(conn, req, resp);
         });
-
-    // server.setThreadNum(0); // 在 IO 线程中处理
 }
 
 void Application::start(unsigned int threadNum) {

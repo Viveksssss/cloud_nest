@@ -87,5 +87,6 @@ target_link_libraries(cloud_nest PRIVATE
     muduo
     OpenSSL::SSL
     OpenSSL::Crypto
+    z
 )
 
