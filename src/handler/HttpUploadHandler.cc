@@ -1,5 +1,6 @@
 #include "HttpUploadHandler.h"
 #include <HttpContext.h>
+#include <HttpResponse.h>
 #include <nlohmann/json.hpp>
 #include <spdlog/spdlog.h>
 #include <TcpConnection.h>

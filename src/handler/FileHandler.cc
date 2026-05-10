@@ -16,7 +16,6 @@
 #include <nlohmann/json.hpp>
 #include <regex>
 #include <spdlog/spdlog.h>
-#include <stdexcept>
 #include <string>
 #include <system_error>
 #include <TcpConnection.h>
@@ -48,6 +47,7 @@ bool FileHandler::handleUpload(TcpConnectionPtr const &conn, HttpRequest &req, H
         utils::sendError(resp, "未登录或会话已过期", 401, conn);
         return true;
     }
+
     // 2. 获取或创建上传上下文
     auto httpCtx = std::static_pointer_cast<HttpContext>(conn->getContext());
     if (!httpCtx) {
@@ -56,25 +56,27 @@ bool FileHandler::handleUpload(TcpConnectionPtr const &conn, HttpRequest &req, H
     }
 
     std::shared_ptr<FileUploadContext> upCtx = httpCtx->getContext<FileUploadContext>();
+
+    // ========== 首次处理：解析头部，创建上下文 ==========
     if (!upCtx) {
-        // 首次请求:解析头部和body
         std::string contentType = req.getHeader("Content-Type");
         std::regex boundaryRe("boundary=(.+)$");
         std::smatch match;
         if (!std::regex_search(contentType, match, boundaryRe)) {
-            utils::sendError(resp, "无效的 Content-type", 400, conn);
+            utils::sendError(resp, "无效的 Content-Type", 400, conn);
             return true;
         }
-
         std::string boundary = "--" + match[1].str();
 
+        // 获取原始文件名
         std::string originalName;
         std::string headerName = req.getHeader("X-File-Name");
         if (!headerName.empty()) {
             originalName = utils::urlDecode(headerName);
         } else {
+            // 从 body 中的 Content-Disposition 头提取
             std::string body = req.body();
-            std::regex fnRe("Content-Disposition:.*filename=\"([^\"]+)\"");
+            std::regex fnRe(R"(Content-Disposition:.*filename=\"([^\"]+)\")");
             if (std::regex_search(body, match, fnRe) && match[1].matched) {
                 originalName = match[1].str();
             } else {
@@ -84,43 +86,123 @@ bool FileHandler::handleUpload(TcpConnectionPtr const &conn, HttpRequest &req, H
 
         std::string serverFilename = utils::generateUniqueFilename("upload");
         std::string filepath = _uploadDir + "/" + serverFilename;
+
         upCtx = std::make_shared<FileUploadContext>(filepath, originalName);
         upCtx->setBoundary(boundary);
         httpCtx->setContext(upCtx);
 
-        std::string body = req.body();
+        // 处理第一个数据块
+        std::string body = req.body(); // 此时 body 可能已经包含部分文件数据
         size_t headerEnd = body.find("\r\n\r\n");
-        if (headerEnd != std::string::npos) {
-            headerEnd += 4;
-            std::string endBoundary = boundary + "--";
-            size_t endPos = body.find(endBoundary);
-            if (endPos != std::string::npos) {
-                if (endPos > headerEnd) {
-                    upCtx->writeData(body.data() + headerEnd, endPos - headerEnd);
-                    upCtx->setState(FileUploadContext::State::Complete);
-                } else {
-                    upCtx->writeData(body.data() + headerEnd, body.size() - headerEnd);
-                    upCtx->setState(FileUploadContext::State::ExpectBounday);
-                }
-            }
+        if (headerEnd == std::string::npos) {
+            utils::sendError(resp, "请求格式错误", 400, conn);
+            return true;
         }
-        req.setBody("");
-    } else {
-        std::string body = req.body();
-        if (!body.empty()) {
-            switch (upCtx->getState()) {
-            case FileUploadContext::State::ExpectBounday: {
-                break;
+        headerEnd += 4; // 跳过 multipart 头部，指向文件内容开始
+
+        std::string endBoundary = boundary + "--";
+
+        size_t endPos = body.find(endBoundary);
+        if (endPos != std::string::npos) {
+            // 本包已包含结束边界，上传在本次完成
+            if (endPos > headerEnd) {
+                upCtx->writeData(body.data() + headerEnd, endPos - headerEnd);
             }
-            case FileUploadContext::State::ExpectContent: {
-                break;
+            upCtx->setState(FileUploadContext::State::Complete);
+        } else {
+            // 未找到结束边界，写入全部文件内容（从 headerEnd 到末尾）
+            if (body.size() > headerEnd) {
+                upCtx->writeData(body.data() + headerEnd, body.size() - headerEnd);
             }
-            default: break;
-            }
+            upCtx->setState(FileUploadContext::State::ExpectBounday);
         }
+
         req.setBody("");
     }
+    // ========== 后续数据包处理 ==========
+    else {
+        std::string body = req.body();
+        // 新到达且未被处理过的数据视图
+        std::string_view newData(body.data(), body.size());
+        std::string boundary = upCtx->getBoundary();
+        std::string endBoundary = boundary + "--";
+        bool completed = false;
 
+        switch (upCtx->getState()) {
+        case FileUploadContext::State::ExpectBounday: {
+            // 优先查找结束边界
+            size_t endPos = newData.find(endBoundary);
+            if (endPos != std::string_view::npos) {
+                if (endPos > 0) {
+                    upCtx->writeData(newData.data(), endPos);
+                }
+                completed = true;
+                req.setBody("");
+                break;
+            }
+
+            // 查找普通边界（通常用于多段上传，这里我们假设只有一个文件段）
+            size_t nextBoundary = newData.find(boundary);
+            if (nextBoundary != std::string_view::npos) {
+                // 写入边界之前的数据
+                if (nextBoundary > 0) {
+                    upCtx->writeData(newData.data(), nextBoundary);
+                }
+                // 跳过边界行和可能存在的子头部（例如 \r\nContent-Disposition...）
+                size_t subHeaderEnd = newData.find("\r\n\r\n", nextBoundary);
+                if (subHeaderEnd != std::string_view::npos) {
+                    subHeaderEnd += 4;
+                    // 对剩余部分递归处理：检查是否立即包含结束边界
+                    std::string_view rest = newData.substr(subHeaderEnd);
+                    size_t endInRest = rest.find(endBoundary);
+                    if (endInRest != std::string_view::npos) {
+                        if (endInRest > 0) {
+                            upCtx->writeData(rest.data(), endInRest);
+                        }
+                        completed = true;
+                    } else {
+                        // 没有结束边界，写入所有剩余内容
+                        if (!rest.empty()) {
+                            upCtx->writeData(rest.data(), rest.size());
+                        }
+                        upCtx->setState(FileUploadContext::State::ExpectContent);
+                    }
+                    req.setBody("");
+                } else {
+                    // 子头部不完整，无法继续，当前包不做处理，等待更多数据
+                    break;
+                }
+            } else {
+                // 没有任何边界，直接全部写入
+                upCtx->writeData(newData.data(), newData.size());
+                req.setBody("");
+            }
+            break;
+        }
+
+        case FileUploadContext::State::ExpectContent: {
+            size_t endPos = newData.find(endBoundary);
+            if (endPos != std::string_view::npos) {
+                if (endPos > 0) {
+                    upCtx->writeData(newData.data(), endPos);
+                }
+                completed = true;
+            } else {
+                upCtx->writeData(newData.data(), newData.size());
+            }
+            req.setBody("");
+            break;
+        }
+
+        default: break;
+        }
+
+        if (completed) {
+            upCtx->setState(FileUploadContext::State::Complete);
+        }
+    }
+
+    // ========== 检查是否上传完成 ==========
     if (upCtx->getState() == FileUploadContext::State::Complete || httpCtx->gotAll()) {
         uintmax_t size = upCtx->getTotalBytes();
         std::string serverFilename = fs::path(upCtx->getFilename()).filename().string();
@@ -136,8 +218,11 @@ bool FileHandler::handleUpload(TcpConnectionPtr const &conn, HttpRequest &req, H
                 std::to_string(userId)});
         if (res.empty()) {
             spdlog::error("文件信息存储失败!");
-            std::runtime_error("文件信息存储数据库失败");
+            utils::sendError(resp, "文件信息存储失败", 500, conn);
+            httpCtx->setContext(nullptr);
+            return true;
         }
+
         int fileId = std::stoi(res[0]["id"]);
         json respJson = {{"code", 0},
             {"message", "上传成功"},
@@ -149,9 +234,10 @@ bool FileHandler::handleUpload(TcpConnectionPtr const &conn, HttpRequest &req, H
         utils::sendJson(resp, respJson.dump(), 200, conn);
         httpCtx->setContext(nullptr);
         return true;
-    } else {
-        return true;
     }
+
+    // 尚未接收完成，继续等待
+    return false;
 }
 
 bool FileHandler::handleDownload(

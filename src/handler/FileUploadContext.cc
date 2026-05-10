@@ -41,6 +41,7 @@ void FileUploadContext::writeData(char const *data, size_t len) {
     }
     _file.write(data, static_cast<long>(len));
     _totalBytes += len;
+    spdlog::info("[上传] 写入文件 {} 字节，累计 {}", len, _totalBytes); // ← 添加
 }
 
 void FileUploadContext::setBoundary(std::string const &b) {
