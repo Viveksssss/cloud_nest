@@ -393,12 +393,6 @@
         let shareCode = null;
         let isProtected = false;
 
-        const sessionId = localStorage.getItem('sessionId');
-
-        function getAuthHeaders() {
-            return sessionId ? { 'X-Session-ID': sessionId } : {};
-        }
-
         function initVideoElement(videoElement) {
             if (!videoElement) return;
             videoElement.removeEventListener('seeking', videoElement.seekingHandler);
@@ -419,17 +413,16 @@
         };
 
         function fetchShareInfo() {
-            return fetch(`/share/info/${shareCode}`,{headers: getAuthHeaders()})
+            return fetch(`/share/info/${shareCode}`)
                 .then(response => {
-                    if (response.status === 401) {
-                        // 未登录 → 跳转登录页，登录后自动回到当前分享页
-                        window.location.href = '/?redirect=' + encodeURIComponent(window.location.pathname);
-                        return;
-                    }
                     if (!response.ok) {
-                        return response.json().then(data => {
-                            throw new Error(data.message || '请求失败');
-                        });
+                        if (response.status === 403) {
+                            hideLoading();
+                            document.getElementById('public-share').style.display = 'none';
+                            document.getElementById('protected-share').style.display = 'block';
+                            return;
+                        }
+                        throw new Error('Network response was not ok');
                     }
                     return response.json();
                 })
@@ -452,7 +445,8 @@
                 })
                 .catch(error => {
                     hideLoading();
-                    showError(error.message + '。若您已拥有账户，请 <a href="/">登录</a> 后再试。');
+                    console.error('获取分享信息失败:', error);
+                    showError('请输入提取码');
                 });
         }
 
@@ -463,7 +457,7 @@
                 return;
             }
             showLoading();
-            fetch(`/share/info/${shareCode}?extract_code=${extractCode}`,{headers: getAuthHeaders()})
+            fetch(`/share/info/${shareCode}?extract_code=${extractCode}`)
                 .then(response => response.json())
                 .then(data => {
                     hideLoading();
